@@ -73,8 +73,9 @@ plt.xlabel('Ano')
 plt.grid(True)
 plt.show()
 
-# Comparação entre estados
-df_states = df.groupby('UF').sum()[['IMPOSTO SOBRE IMPORTAÇÃO', 'IMPOSTO SOBRE EXPORTAÇÃO']]
+# Comparação entre estados (ajustado para variáveis dummy)
+# Somar as colunas dummy para obter o total por estado
+df_states = df.filter(like='UF_').sum().sort_values(ascending=False)
 df_states.plot(kind='bar', figsize=(14, 7))
 plt.title('Comparação de Arrecadação por Estado')
 plt.ylabel('Arrecadação (R$)')
