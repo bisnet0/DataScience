@@ -5,6 +5,8 @@ import seaborn as sns
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import accuracy_score
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import PolynomialFeatures
 
 # Carregar os dados
 url = 'https://www.gov.br/receitafederal/dados/arrecadacao-estado.csv'
@@ -83,17 +85,53 @@ plt.xlabel('Estado')
 plt.grid(True)
 plt.show()
 
-# Análise de sazonalidade
-df_months = df.groupby('Mês').sum()[['IMPOSTO SOBRE IMPORTAÇÃO', 'IMPOSTO SOBRE EXPORTAÇÃO']]
-df_months.plot(kind='line', figsize=(12, 6))
-plt.title('Sazonalidade nas Receitas de Impostos')
+# Arrecadação por estado ao longo dos anos
+states = df.filter(like='UF_').columns
+df_long = df.groupby(['Ano'])[states].sum()
+df_long.plot(kind='line', figsize=(14, 7))
+plt.title('Arrecadação por Estado ao Longo dos Anos')
 plt.ylabel('Arrecadação (R$)')
-plt.xlabel('Mês')
+plt.xlabel('Ano')
 plt.grid(True)
+plt.legend(title='Estado', bbox_to_anchor=(1.05, 1), loc='upper left')
 plt.show()
 
 # Análise de correlações
 correlation = df[['IMPOSTO SOBRE IMPORTAÇÃO', 'IMPOSTO SOBRE EXPORTAÇÃO']].corr()
 sns.heatmap(correlation, annot=True, cmap='coolwarm')
 plt.title('Correlação entre as Receitas de Importação e Exportação')
+plt.show()
+
+# Previsão para os próximos 5 anos usando regressão polinomial
+X = df_grouped.index.values.reshape(-1, 1)
+y_imp = df_grouped['IMPOSTO SOBRE IMPORTAÇÃO'].values
+y_exp = df_grouped['IMPOSTO SOBRE EXPORTAÇÃO'].values
+
+# Criando o modelo polinomial
+poly = PolynomialFeatures(degree=3)
+X_poly = poly.fit_transform(X)
+
+model_imp = LinearRegression()
+model_exp = LinearRegression()
+
+model_imp.fit(X_poly, y_imp)
+model_exp.fit(X_poly, y_exp)
+
+# Previsão para os próximos 5 anos
+future_years = np.arange(X[-1] + 1, X[-1] + 6).reshape(-1, 1)
+future_years_poly = poly.transform(future_years)
+pred_imp = model_imp.predict(future_years_poly)
+pred_exp = model_exp.predict(future_years_poly)
+
+# Plotar previsões
+plt.figure(figsize=(14, 7))
+plt.plot(df_grouped.index, df_grouped['IMPOSTO SOBRE IMPORTAÇÃO'], label='Importação (Histórico)')
+plt.plot(df_grouped.index, df_grouped['IMPOSTO SOBRE EXPORTAÇÃO'], label='Exportação (Histórico)')
+plt.plot(future_years, pred_imp, label='Importação (Previsão)', linestyle='--')
+plt.plot(future_years, pred_exp, label='Exportação (Previsão)', linestyle='--')
+plt.title('Previsão de Arrecadação para os Próximos 5 Anos')
+plt.ylabel('Arrecadação (R$)')
+plt.xlabel('Ano')
+plt.grid(True)
+plt.legend()
 plt.show()
